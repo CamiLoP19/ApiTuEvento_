@@ -1,0 +1,6 @@
+@ApiTuEvento__HostAddress = http://localhost:5128
+
+GET {{ApiTuEvento__HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
