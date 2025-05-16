@@ -38,5 +38,9 @@ namespace ApiTuEvento_.Models
     {
         public int BoletoId { get; set; }
     }
+    public class ValidarBoletoDTO
+    {
+        public int BoletoId { get; set; }
+    }
 
 }

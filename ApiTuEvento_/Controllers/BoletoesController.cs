@@ -44,7 +44,7 @@ namespace ApiTuEvento_.Controllers
         }
         // GET: api/Boletoes/entradas-disponibles/{eventoId}
         [HttpGet("vendidas-por-evento/{eventoId}")]
-        [Authorize(Roles = "Administrador")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EntradasVendidasPorEvento(int eventoId)
         {
             var totalVendidas = await _context.boletos
@@ -88,7 +88,7 @@ namespace ApiTuEvento_.Controllers
 
         //  Validar y marcar boleto como usado
         [HttpPost("validar-entrada")]
-        [Authorize(Roles = "Administrador")] // o el rol que valida entradas
+        [Authorize(Roles = "Admin")] // o el rol que valida entradas
         public async Task<IActionResult> ValidarEntrada([FromBody] string codigoAN)
         {
             var boleto = await _context.boletos.FirstOrDefaultAsync(b => b.CodigoAN == codigoAN);
@@ -159,9 +159,63 @@ namespace ApiTuEvento_.Controllers
 
             return Ok(response);
         }
-    
-    // DELETE: api/Boletoes/5
-    [HttpDelete("{id}")]
+
+        [HttpPost("cancelar-boleto/{boletoId}")]
+        [Authorize]
+        public async Task<IActionResult> CancelarBoleto(int boletoId)
+        {
+            var usuario = await _context.usuarios
+                .FirstOrDefaultAsync(u => u.NombreUsuario == User.Identity.Name);
+            if (usuario == null)
+                return Unauthorized();
+
+            var boleto = await _context.boletos
+                .FirstOrDefaultAsync(b => b.BoletoId == boletoId && b.Usuario.PersonaId == usuario.PersonaId);
+
+            if (boleto == null)
+                return NotFound("Boleto no encontrado o no pertenece a usted.");
+
+            // Opcional: No permitir cancelar si ya fue usado
+            if (boleto.Usado)
+                return BadRequest("No se puede cancelar un boleto que ya ha sido utilizado.");
+
+            // Opcional: No permitir cancelar después de la fecha del evento
+            var evento = await _context.eventos.FindAsync(boleto.EventoId);
+            if (evento != null && evento.FechaEvento <= DateTime.Now)
+                return BadRequest("No se puede cancelar un boleto después de la fecha del evento.");
+
+            // Eliminar el boleto de la base de datos
+            _context.boletos.Remove(boleto);
+            await _context.SaveChangesAsync();
+
+            return Ok("Boleto cancelado y cupo liberado.");
+        }
+
+        [HttpPost("validar-boleto")]
+        [Authorize(Roles = "Admin")] //  el rol que valida en la entrada
+        public async Task<IActionResult> ValidarBoleto([FromBody] ValidarBoletoDTO dto)
+        {
+            var boleto = await _context.boletos
+                .FirstOrDefaultAsync(b => b.BoletoId == dto.BoletoId); // O por dto.CodigoQR si usas QR
+
+            if (boleto == null)
+                return NotFound("Boleto no encontrado.");
+            if (boleto.Usado)
+                return BadRequest("Este boleto ya fue utilizado.");
+            if (!boleto.EstadoVenta)
+                return BadRequest("El boleto no está pagado o es inválido.");
+
+
+            boleto.Usado = true;
+            await _context.SaveChangesAsync();
+
+            return Ok("Boleto válido. ¡Acceso permitido!");
+        }
+
+        
+
+        // DELETE: api/Boletoes/5
+        [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBoleto(int id)
         {
             var boleto = await _context.boletos.FindAsync(id);

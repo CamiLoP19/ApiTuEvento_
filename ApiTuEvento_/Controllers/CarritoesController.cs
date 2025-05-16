@@ -70,8 +70,6 @@ namespace ApiTuEvento_.Controllers
         }
         // GET: api/Carritoes/5
         [HttpGet("{id}")]
-
-        // NUEVO MÉTODO: Ver boletos comprados por el usuario autenticado
         public async Task<ActionResult<Carrito>> GetCarrito(int id)
         {
             var carrito = await _context.carritos.FindAsync(id);
@@ -156,6 +154,14 @@ namespace ApiTuEvento_.Controllers
                 .FirstOrDefaultAsync(b => b.BoletoId == dto.BoletoId && !b.EstadoVenta);
             if (boleto == null)
                 return BadRequest("Boleto no disponible.");
+            // Validar aforo
+            var evento = await _context.eventos.FindAsync(boleto.EventoId);
+            if (evento == null)
+                return NotFound("Evento no encontrado.");
+
+            var vendidos = await _context.boletos.CountAsync(b => b.EventoId == evento.EventoId && b.EstadoVenta);
+            if (vendidos >= evento.Aforo)
+                return BadRequest("No hay más boletos disponibles para este evento.");
 
             var carrito = await _context.carritos
                 .Include(c => c.Boletos)

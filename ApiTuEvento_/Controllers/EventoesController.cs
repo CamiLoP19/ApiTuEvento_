@@ -73,9 +73,22 @@ namespace ApiTuEvento_.Controllers
             return Ok(evento);
         }
 
+        [HttpGet("aforo-restante/{eventoId}")]
+        public async Task<IActionResult> AforoRestante(int eventoId)
+        {
+            var evento = await _context.eventos.FindAsync(eventoId);
+            if (evento == null)
+                return NotFound("Evento no encontrado.");
+
+            var vendidos = await _context.boletos.CountAsync(b => b.EventoId == eventoId && b.EstadoVenta);
+            var restante = evento.Aforo - vendidos;
+
+            return Ok(new { EventoId = eventoId, AforoTotal = evento.Aforo, Vendidos = vendidos, Restante = restante });
+        }
+
         // POST: api/Eventos (solo admins)
         [HttpPost]
-        [Authorize(Roles = "Administrador")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<EventoResponseDto>> CrearEvento(EventoCreateDto dto)
         {
             var evento = new Evento
@@ -112,7 +125,7 @@ namespace ApiTuEvento_.Controllers
 
         // PUT: api/Eventos/5 (solo admins)
         [HttpPut("{id}")]
-        [Authorize(Roles = "Administrador")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EditarEvento(int id, EventoCreateDto dto)
         {
             var evento = await _context.eventos.FindAsync(id);
@@ -135,7 +148,7 @@ namespace ApiTuEvento_.Controllers
 
         // DELETE: api/Eventos/5 (solo admins)
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrador")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EliminarEvento(int id)
         {
             var evento = await _context.eventos.FindAsync(id);

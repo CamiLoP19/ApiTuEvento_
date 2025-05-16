@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ApiTuEvento_.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ApiTuEvento_.Controllers
 {
@@ -39,6 +40,43 @@ namespace ApiTuEvento_.Controllers
             }
 
             return administrador;
+        }
+
+        [HttpGet("ventas-por-evento")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> VentasPorEvento()
+        {
+            var reporte = await _context.eventos
+                .Select(evento => new
+                {
+                    EventoId = evento.EventoId,
+                    Nombre = evento.NombreEvento,
+                    BoletosVendidos = _context.boletos.Count(b => b.EventoId == evento.EventoId && b.EstadoVenta),
+                    Ingresos = _context.boletos
+                        .Where(b => b.EventoId == evento.EventoId && b.EstadoVenta)
+                        .Sum(b => (decimal?)b.Precio) ?? 0
+                })
+                .ToListAsync();
+
+            return Ok(reporte);
+        
+    }
+
+        [HttpGet("usuarios-top-compras")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UsuariosTopCompras()
+        {
+            var usuarios = await _context.usuarios
+                .Select(u => new {
+                    u.PersonaId,
+                    u.NombreUsuario,
+                    Compras = _context.boletos.Count(b => b.Usuario.PersonaId == u.PersonaId && b.EstadoVenta)
+                })
+                .OrderByDescending(u => u.Compras)
+                .Take(10)
+                .ToListAsync();
+
+            return Ok(usuarios);
         }
 
         // PUT: api/Administradors/5

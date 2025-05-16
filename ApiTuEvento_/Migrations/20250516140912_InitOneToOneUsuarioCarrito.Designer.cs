@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ApiTuEvento_.Migrations
 {
     [DbContext(typeof(ContextDB))]
-    [Migration("20250515044734_inicial")]
-    partial class inicial
+    [Migration("20250516140912_InitOneToOneUsuarioCarrito")]
+    partial class InitOneToOneUsuarioCarrito
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -62,6 +62,9 @@ namespace ApiTuEvento_.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("Usado")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("UsuarioPersonaId")
                         .HasColumnType("int");
 
@@ -91,6 +94,9 @@ namespace ApiTuEvento_.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("IdCarrito");
+
+                    b.HasIndex("IdUsuario")
+                        .IsUnique();
 
                     b.ToTable("carritos");
                 });
@@ -217,18 +223,13 @@ namespace ApiTuEvento_.Migrations
                 {
                     b.HasBaseType("ApiTuEvento_.Models.Persona");
 
-                    b.Property<int?>("CarritoIdCarrito")
-                        .HasColumnType("int");
-
-                    b.HasIndex("CarritoIdCarrito");
-
                     b.HasDiscriminator().HasValue("Usuario");
                 });
 
             modelBuilder.Entity("ApiTuEvento_.Models.Boleto", b =>
                 {
                     b.HasOne("ApiTuEvento_.Models.Carrito", null)
-                        .WithMany("boletos")
+                        .WithMany("Boletos")
                         .HasForeignKey("CarritoIdCarrito");
 
                     b.HasOne("ApiTuEvento_.Models.Evento", "evento")
@@ -246,6 +247,17 @@ namespace ApiTuEvento_.Migrations
                     b.Navigation("evento");
                 });
 
+            modelBuilder.Entity("ApiTuEvento_.Models.Carrito", b =>
+                {
+                    b.HasOne("ApiTuEvento_.Models.Usuario", "Usuario")
+                        .WithOne("Carrito")
+                        .HasForeignKey("ApiTuEvento_.Models.Carrito", "IdUsuario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("ApiTuEvento_.Models.Evento", b =>
                 {
                     b.HasOne("ApiTuEvento_.Models.CategoriaEvento", null)
@@ -253,18 +265,9 @@ namespace ApiTuEvento_.Migrations
                         .HasForeignKey("CategoriaEventoIdCategoriaEvento");
                 });
 
-            modelBuilder.Entity("ApiTuEvento_.Models.Usuario", b =>
-                {
-                    b.HasOne("ApiTuEvento_.Models.Carrito", "Carrito")
-                        .WithMany()
-                        .HasForeignKey("CarritoIdCarrito");
-
-                    b.Navigation("Carrito");
-                });
-
             modelBuilder.Entity("ApiTuEvento_.Models.Carrito", b =>
                 {
-                    b.Navigation("boletos");
+                    b.Navigation("Boletos");
                 });
 
             modelBuilder.Entity("ApiTuEvento_.Models.CategoriaEvento", b =>
@@ -279,6 +282,9 @@ namespace ApiTuEvento_.Migrations
 
             modelBuilder.Entity("ApiTuEvento_.Models.Usuario", b =>
                 {
+                    b.Navigation("Carrito")
+                        .IsRequired();
+
                     b.Navigation("boletos");
                 });
 #pragma warning restore 612, 618

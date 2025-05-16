@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ApiTuEvento_.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ApiTuEvento_.Controllers
 {
@@ -40,6 +41,31 @@ namespace ApiTuEvento_.Controllers
             }
 
             return usuario;
+        }
+
+        [HttpGet("mis-boletos")]
+        [Authorize]
+        public async Task<IActionResult> MisBoletos()
+        {
+            var usuario = await _context.usuarios
+                .FirstOrDefaultAsync(u => u.NombreUsuario == User.Identity.Name);
+            if (usuario == null)
+                return Unauthorized();
+
+            var boletos = await _context.boletos
+                .Where(b => b.Usuario.PersonaId == usuario.PersonaId && b.EstadoVenta)
+                .Select(b => new {
+                    b.BoletoId,
+                    b.TipoBoleto,
+                    b.Descripcion,
+                    b.Precio,
+                    b.EstadoVenta,
+                    b.Usado, // Si tienes el campo Usado
+                    b.EventoId
+                })
+                .ToListAsync();
+
+            return Ok(boletos);
         }
 
         // PUT: api/Usuarios/5

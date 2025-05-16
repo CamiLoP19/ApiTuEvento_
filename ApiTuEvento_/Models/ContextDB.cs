@@ -4,9 +4,8 @@ namespace ApiTuEvento_.Models
 {
     public class ContextDB : DbContext
     {
-        public ContextDB(DbContextOptions<ContextDB> options) : base(options) 
+        public ContextDB(DbContextOptions<ContextDB> options) : base(options)
         { }
-
 
         public DbSet<ApiTuEvento_.Models.Persona> personas { get; set; } = default!;
         public DbSet<ApiTuEvento_.Models.Usuario> usuarios { get; set; } = default!;
@@ -18,13 +17,14 @@ namespace ApiTuEvento_.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            
-          modelBuilder.Entity<Usuario>()
-         .HasOne(u => u.Carrito)
-         .WithOne(c => c.Usuario)
-         .HasForeignKey<Carrito>(c => c.IdUsuario);
+            // RELACIÓN UNO A UNO CORRECTA
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.Carrito)
+                .WithOne(c => c.Usuario)
+                .HasForeignKey<Carrito>(c => c.IdUsuario)
+                .IsRequired();
 
+            base.OnModelCreating(modelBuilder);
         }
     }
-
 }

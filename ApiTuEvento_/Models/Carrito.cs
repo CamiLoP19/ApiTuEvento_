@@ -7,14 +7,10 @@ namespace ApiTuEvento_.Models
         [Key]
         public int IdCarrito { get; set; }
 
-        // Esto es la foreign key, debe ser ÚNICA (one-to-one)
-        public int IdUsuario { get; set; }
+        public int IdUsuario { get; set; } // FK UNO A UNO
 
         public decimal Total { get; set; }
-
-        // Navegación
         public virtual Usuario Usuario { get; set; }
-
         public ICollection<Boleto> Boletos { get; set; } = new List<Boleto>();
     }
 

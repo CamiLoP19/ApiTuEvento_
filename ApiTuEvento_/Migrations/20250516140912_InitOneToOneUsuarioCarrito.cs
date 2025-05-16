@@ -6,25 +6,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ApiTuEvento_.Migrations
 {
     /// <inheritdoc />
-    public partial class inicial : Migration
+    public partial class InitOneToOneUsuarioCarrito : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "carritos",
-                columns: table => new
-                {
-                    IdCarrito = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    IdUsuario = table.Column<int>(type: "int", nullable: false),
-                    Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_carritos", x => x.IdCarrito);
-                });
-
             migrationBuilder.CreateTable(
                 name: "categoriaEventos",
                 columns: table => new
@@ -51,17 +37,11 @@ namespace ApiTuEvento_.Migrations
                     Correo = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Contraseña = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     FechaNacimiento = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Discriminator = table.Column<string>(type: "nvarchar(13)", maxLength: 13, nullable: false),
-                    CarritoIdCarrito = table.Column<int>(type: "int", nullable: true)
+                    Discriminator = table.Column<string>(type: "nvarchar(13)", maxLength: 13, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_personas", x => x.PersonaId);
-                    table.ForeignKey(
-                        name: "FK_personas_carritos_CarritoIdCarrito",
-                        column: x => x.CarritoIdCarrito,
-                        principalTable: "carritos",
-                        principalColumn: "IdCarrito");
                 });
 
             migrationBuilder.CreateTable(
@@ -91,6 +71,26 @@ namespace ApiTuEvento_.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "carritos",
+                columns: table => new
+                {
+                    IdCarrito = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    IdUsuario = table.Column<int>(type: "int", nullable: false),
+                    Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_carritos", x => x.IdCarrito);
+                    table.ForeignKey(
+                        name: "FK_carritos_personas_IdUsuario",
+                        column: x => x.IdUsuario,
+                        principalTable: "personas",
+                        principalColumn: "PersonaId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "boletos",
                 columns: table => new
                 {
@@ -105,6 +105,7 @@ namespace ApiTuEvento_.Migrations
                     EventoId = table.Column<int>(type: "int", nullable: false),
                     PersonaId = table.Column<int>(type: "int", nullable: true),
                     UsuarioPersonaId = table.Column<int>(type: "int", nullable: true),
+                    Usado = table.Column<bool>(type: "bit", nullable: false),
                     CarritoIdCarrito = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
@@ -144,14 +145,15 @@ namespace ApiTuEvento_.Migrations
                 column: "UsuarioPersonaId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_carritos_IdUsuario",
+                table: "carritos",
+                column: "IdUsuario",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_eventos_CategoriaEventoIdCategoriaEvento",
                 table: "eventos",
                 column: "CategoriaEventoIdCategoriaEvento");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_personas_CarritoIdCarrito",
-                table: "personas",
-                column: "CarritoIdCarrito");
         }
 
         /// <inheritdoc />
@@ -161,6 +163,9 @@ namespace ApiTuEvento_.Migrations
                 name: "boletos");
 
             migrationBuilder.DropTable(
+                name: "carritos");
+
+            migrationBuilder.DropTable(
                 name: "eventos");
 
             migrationBuilder.DropTable(
@@ -168,9 +173,6 @@ namespace ApiTuEvento_.Migrations
 
             migrationBuilder.DropTable(
                 name: "categoriaEventos");
-
-            migrationBuilder.DropTable(
-                name: "carritos");
         }
     }
 }
