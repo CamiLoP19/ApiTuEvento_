@@ -14,7 +14,7 @@ namespace WebApiRest.Helpers
             _config = config;
         }
 
-        public string GenerateToken(string username)
+        public string GenerateToken(string username, string rol)
         {
             var key = Encoding.UTF8.GetBytes(_config["JwtSettings:Key"]);
             var claims = new[]

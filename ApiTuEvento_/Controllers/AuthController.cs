@@ -6,12 +6,14 @@ using WebApiRest.Helpers;
 
 namespace ApiTuEvento_.Controllers
 {
-    public class LoginController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
     {
         private readonly ContextDB _context;
         private readonly JwtHelper _jwtHelper;
 
-        public LoginController(ContextDB context, JwtHelper jwtHelper)
+        public AuthController(ContextDB context, JwtHelper jwtHelper)
         {
             _context = context;
             _jwtHelper = jwtHelper;
@@ -28,7 +30,7 @@ namespace ApiTuEvento_.Controllers
                 return Unauthorized("Credenciales inválidas");
             }
 
-            var token = _jwtHelper.GenerateToken(user.NombreUsuario);
+            var token = _jwtHelper.GenerateToken(user.NombreUsuario, user.Rol); // Mejor pasar también el rol
 
             return Ok(new
             {
@@ -45,7 +47,7 @@ namespace ApiTuEvento_.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
-            if (_context.usuarios.Any(u => u.NombreUsuario == dto.NombreUsuario))
+            if (await _context.usuarios.AnyAsync(u => u.NombreUsuario == dto.NombreUsuario))
                 return BadRequest("El usuario ya existe.");
 
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Contraseña);
@@ -66,6 +68,5 @@ namespace ApiTuEvento_.Controllers
             return Ok("Usuario registrado correctamente.");
         }
     }
-
 }
 

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ApiTuEvento_.Models;
+using ApiTuEvento_.Helpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ApiTuEvento_.Controllers
 {
@@ -40,7 +42,16 @@ namespace ApiTuEvento_.Controllers
 
             return boleto;
         }
+        // GET: api/Boletoes/entradas-disponibles/{eventoId}
+        [HttpGet("vendidas-por-evento/{eventoId}")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EntradasVendidasPorEvento(int eventoId)
+        {
+            var totalVendidas = await _context.boletos
+                .CountAsync(b => b.EventoId == eventoId && b.EstadoVenta);
 
+            return Ok(new { EventoId = eventoId, EntradasVendidas = totalVendidas });
+        }
         // PUT: api/Boletoes/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
@@ -74,17 +85,52 @@ namespace ApiTuEvento_.Controllers
 
         // POST: api/Boletoes
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Boleto>> PostBoleto(Boleto boleto)
+        [HttpPost("comprar")]
+        [Authorize]
+        public async Task<IActionResult> ComprarBoleto([FromBody] ComprarBoletoDto dto)
         {
-            _context.boletos.Add(boleto);
+            // 1. Obtener el usuario autenticado
+            var usuario = await _context.usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == User.Identity.Name);
+            if (usuario == null) return Unauthorized();
+
+            // 2. Buscar el boleto disponible (no vendido) por ID
+            var boleto = await _context.boletos
+                .FirstOrDefaultAsync(b => b.BoletoId == dto.BoletoId && !b.EstadoVenta);
+            if (boleto == null)
+                return BadRequest("Boleto no disponible o ya vendido.");
+
+            // 3. Generar código alfanumérico único
+            boleto.CodigoAN = Guid.NewGuid().ToString("N").Substring(0, 10);
+
+            // 4. Generar código QR (base64) usando el helper
+            boleto.CodigoQR = QRCodeHelper.GenerarCodigoQR(boleto.CodigoAN);
+
+            // 5. Asignar usuario y marcar como vendido
+            boleto.PersonaId = usuario.PersonaId;
+            boleto.EstadoVenta = true;
+
+            // 6. Guardar cambios
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetBoleto", new { id = boleto.BoletoId }, boleto);
-        }
+            // 7. Devolver la info del boleto comprado (puedes ajustar el DTO si quieres mostrar más info)
+            var response = new BoletoDTO
+            {
+                BoletoId = boleto.BoletoId,
+                TipoBoleto = boleto.TipoBoleto,
+                Descripcion = boleto.Descripcion,
+                Precio = boleto.Precio,
+                EstadoVenta = boleto.EstadoVenta,
+                CodigoQR = boleto.CodigoQR,
+                CodigoAN = boleto.CodigoAN,
+                EventoId = boleto.EventoId,
+                PersonaId = boleto.PersonaId
+            };
 
-        // DELETE: api/Boletoes/5
-        [HttpDelete("{id}")]
+            return Ok(response);
+        }
+    
+    // DELETE: api/Boletoes/5
+    [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBoleto(int id)
         {
             var boleto = await _context.boletos.FindAsync(id);

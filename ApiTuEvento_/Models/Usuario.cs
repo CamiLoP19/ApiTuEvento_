@@ -2,6 +2,7 @@
 {
     public class Usuario : Persona
     {
+       
         public ICollection<Boleto>? boletos { get; set; }
         public virtual Carrito? Carrito { get; set; }
     }

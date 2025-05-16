@@ -6,102 +6,146 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ApiTuEvento_.Models;
+using Microsoft.AspNetCore.Authorization;
+
+
 
 namespace ApiTuEvento_.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class EventoesController : ControllerBase
+    public class EventosController : ControllerBase
     {
         private readonly ContextDB _context;
 
-        public EventoesController(ContextDB context)
+        public EventosController(ContextDB context)
         {
             _context = context;
         }
 
-        // GET: api/Eventoes
+        // GET: api/Eventos
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Evento>>> Geteventos()
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<EventoResponseDto>>> GetEventos()
         {
-            return await _context.eventos.ToListAsync();
+            var eventos = await _context.eventos
+                .Select(e => new EventoResponseDto
+                {
+                    EventoId = e.EventoId,
+                    NombreEvento = e.NombreEvento,
+                    FechaEvento = e.FechaEvento,
+                    LugarEvento = e.LugarEvento,
+                    Aforo = e.Aforo,
+                    CategoriaEvento = e.CategoriaEvento,
+                    DescripcionEvento = e.DescripcionEvento,
+                    ImagenUrl = e.ImagenUrl,
+                    EstadoEventoActivo = e.EstadoEventoActivo
+                })
+                .ToListAsync();
+
+            return Ok(eventos);
         }
 
-        // GET: api/Eventoes/5
+        // GET: api/Eventos/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Evento>> GetEvento(int id)
+        [AllowAnonymous]
+        public async Task<ActionResult<EventoResponseDto>> GetEvento(int id)
         {
-            var evento = await _context.eventos.FindAsync(id);
+            var evento = await _context.eventos
+                .Where(e => e.EventoId == id)
+                .Select(e => new EventoResponseDto
+                {
+                    EventoId = e.EventoId,
+                    NombreEvento = e.NombreEvento,
+                    FechaEvento = e.FechaEvento,
+                    LugarEvento = e.LugarEvento,
+                    Aforo = e.Aforo,
+                    CategoriaEvento = e.CategoriaEvento,
+                    DescripcionEvento = e.DescripcionEvento,
+                    ImagenUrl = e.ImagenUrl,
+                    EstadoEventoActivo = e.EstadoEventoActivo
+                })
+                .FirstOrDefaultAsync();
 
             if (evento == null)
-            {
                 return NotFound();
-            }
 
-            return evento;
+            return Ok(evento);
         }
 
-        // PUT: api/Eventoes/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutEvento(int id, Evento evento)
+        // POST: api/Eventos (solo admins)
+        [HttpPost]
+        [Authorize(Roles = "Administrador")]
+        public async Task<ActionResult<EventoResponseDto>> CrearEvento(EventoCreateDto dto)
         {
-            if (id != evento.EventoId)
+            var evento = new Evento
             {
-                return BadRequest();
-            }
+                NombreEvento = dto.NombreEvento,
+                FechaEvento = dto.FechaEvento,
+                LugarEvento = dto.LugarEvento,
+                Aforo = dto.Aforo,
+                CategoriaEvento = dto.CategoriaEvento,
+                DescripcionEvento = dto.DescripcionEvento,
+                ImagenUrl = dto.ImagenUrl,
+                EstadoEventoActivo = dto.EstadoEventoActivo
+            };
 
-            _context.Entry(evento).State = EntityState.Modified;
+            _context.eventos.Add(evento);
+            await _context.SaveChangesAsync();
 
-            try
+            // Mapeo a DTO de respuesta
+            var response = new EventoResponseDto
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!EventoExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+                EventoId = evento.EventoId,
+                NombreEvento = evento.NombreEvento,
+                FechaEvento = evento.FechaEvento,
+                LugarEvento = evento.LugarEvento,
+                Aforo = evento.Aforo,
+                CategoriaEvento = evento.CategoriaEvento,
+                DescripcionEvento = evento.DescripcionEvento,
+                ImagenUrl = evento.ImagenUrl,
+                EstadoEventoActivo = evento.EstadoEventoActivo
+            };
+
+            return CreatedAtAction(nameof(GetEvento), new { id = evento.EventoId }, response);
+        }
+
+        // PUT: api/Eventos/5 (solo admins)
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EditarEvento(int id, EventoCreateDto dto)
+        {
+            var evento = await _context.eventos.FindAsync(id);
+            if (evento == null)
+                return NotFound();
+
+            evento.NombreEvento = dto.NombreEvento;
+            evento.FechaEvento = dto.FechaEvento;
+            evento.LugarEvento = dto.LugarEvento;
+            evento.Aforo = dto.Aforo;
+            evento.CategoriaEvento = dto.CategoriaEvento;
+            evento.DescripcionEvento = dto.DescripcionEvento;
+            evento.ImagenUrl = dto.ImagenUrl;
+            evento.EstadoEventoActivo = dto.EstadoEventoActivo;
+
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
-        // POST: api/Eventoes
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Evento>> PostEvento(Evento evento)
-        {
-            _context.eventos.Add(evento);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetEvento", new { id = evento.EventoId }, evento);
-        }
-
-        // DELETE: api/Eventoes/5
+        // DELETE: api/Eventos/5 (solo admins)
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteEvento(int id)
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EliminarEvento(int id)
         {
             var evento = await _context.eventos.FindAsync(id);
             if (evento == null)
-            {
                 return NotFound();
-            }
 
             _context.eventos.Remove(evento);
             await _context.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private bool EventoExists(int id)
-        {
-            return _context.eventos.Any(e => e.EventoId == id);
         }
     }
 }

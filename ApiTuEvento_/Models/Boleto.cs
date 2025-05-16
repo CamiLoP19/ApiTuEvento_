@@ -31,5 +31,9 @@ namespace ApiTuEvento_.Models
         public int? PersonaId { get; set; }
 
     }
+    public class ComprarBoletoDto
+    {
+        public int BoletoId { get; set; }
+    }
 
 }
