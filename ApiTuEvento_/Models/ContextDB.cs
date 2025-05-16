@@ -15,5 +15,16 @@ namespace ApiTuEvento_.Models
         public DbSet<ApiTuEvento_.Models.Carrito> carritos { get; set; } = default!;
         public DbSet<ApiTuEvento_.Models.CategoriaEvento> categoriaEventos { get; set; } = default!;
         public DbSet<ApiTuEvento_.Models.Boleto> boletos { get; set; } = default!;
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            
+          modelBuilder.Entity<Usuario>()
+         .HasOne(u => u.Carrito)
+         .WithOne(c => c.Usuario)
+         .HasForeignKey<Carrito>(c => c.IdUsuario);
+
+        }
     }
+
 }

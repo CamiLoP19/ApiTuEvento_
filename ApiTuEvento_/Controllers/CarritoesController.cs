@@ -70,6 +70,8 @@ namespace ApiTuEvento_.Controllers
         }
         // GET: api/Carritoes/5
         [HttpGet("{id}")]
+
+        // NUEVO MÉTODO: Ver boletos comprados por el usuario autenticado
         public async Task<ActionResult<Carrito>> GetCarrito(int id)
         {
             var carrito = await _context.carritos.FindAsync(id);
@@ -81,10 +83,35 @@ namespace ApiTuEvento_.Controllers
 
             return carrito;
         }
+        [HttpGet("mis-compras")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<BoletoDTO>>> GetMisBoletosComprados()
+        {
+            var usuario = await _context.usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == User.Identity.Name);
+            if (usuario == null)
+                return Unauthorized();
 
-        // PUT: api/Carritoes/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
+            var boletos = await _context.boletos
+                .Where(b => b.PersonaId == usuario.PersonaId && b.EstadoVenta)
+                .Select(b => new BoletoDTO
+                {
+                    BoletoId = b.BoletoId,
+                    TipoBoleto = b.TipoBoleto,
+                    Descripcion = b.Descripcion,
+                    Precio = b.Precio,
+                    EventoId = b.EventoId,
+                    CodigoQR = b.CodigoQR,
+                    CodigoAN = b.CodigoAN
+                    
+                }).ToListAsync();
+
+            return Ok(boletos);
+        }
+    
+
+// PUT: api/Carritoes/5
+// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+[HttpPut("{id}")]
         public async Task<IActionResult> PutCarrito(int id, Carrito carrito)
         {
             if (id != carrito.IdCarrito)

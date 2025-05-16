@@ -16,6 +16,7 @@ namespace ApiTuEvento_.Models
         public Evento evento { get; set; }
         public int? PersonaId { get; set; } // apunta a Usuario.PersonaId
         public Usuario? Usuario { get; set; }
+        public bool Usado { get; set; } = false; // Indica si el boleto ha sido usado o no
     }
 
     public class BoletoDTO
@@ -29,6 +30,8 @@ namespace ApiTuEvento_.Models
         public string? CodigoAN { get; set; }
         public int EventoId { get; set; }
         public int? PersonaId { get; set; }
+        public bool Usado { get; set; } = false; 
+
 
     }
     public class ComprarBoletoDto

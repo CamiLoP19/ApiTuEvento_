@@ -4,15 +4,21 @@ namespace ApiTuEvento_.Models
 {
     public class Carrito
     {
+        [Key]
+        public int IdCarrito { get; set; }
 
-        [Key] public int IdCarrito { get; set; }
+        // Esto es la foreign key, debe ser ÚNICA (one-to-one)
         public int IdUsuario { get; set; }
-        public decimal Total { get; set; }
-        public Usuario Usuario { get; set; }
-        public ICollection<Boleto> Boletos { get; set; } = new List<Boleto>();
-    } 
 
-        public class CarritoDTO
+        public decimal Total { get; set; }
+
+        // Navegación
+        public virtual Usuario Usuario { get; set; }
+
+        public ICollection<Boleto> Boletos { get; set; } = new List<Boleto>();
+    }
+
+    public class CarritoDTO
     {
             public int IdCarrito { get; set; }
             public int IdUsuario { get; set; }

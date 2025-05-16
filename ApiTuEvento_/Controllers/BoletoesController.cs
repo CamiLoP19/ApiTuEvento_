@@ -85,6 +85,29 @@ namespace ApiTuEvento_.Controllers
 
         // POST: api/Boletoes
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+
+        //  Validar y marcar boleto como usado
+        [HttpPost("validar-entrada")]
+        [Authorize(Roles = "Administrador")] // o el rol que valida entradas
+        public async Task<IActionResult> ValidarEntrada([FromBody] string codigoAN)
+        {
+            var boleto = await _context.boletos.FirstOrDefaultAsync(b => b.CodigoAN == codigoAN);
+
+            if (boleto == null)
+                return NotFound("Boleto no encontrado.");
+
+            if (!boleto.EstadoVenta)
+                return BadRequest("Este boleto no ha sido vendido.");
+
+            if (boleto.Usado)
+                return BadRequest("Este boleto ya fue utilizado para ingresar.");
+
+            // Marcar como usado
+            boleto.Usado = true;
+            await _context.SaveChangesAsync();
+
+            return Ok("Entrada validada correctamente. ¡Disfrute el evento!");
+        }
         [HttpPost("comprar")]
         [Authorize]
         public async Task<IActionResult> ComprarBoleto([FromBody] ComprarBoletoDto dto)
@@ -98,21 +121,29 @@ namespace ApiTuEvento_.Controllers
                 .FirstOrDefaultAsync(b => b.BoletoId == dto.BoletoId && !b.EstadoVenta);
             if (boleto == null)
                 return BadRequest("Boleto no disponible o ya vendido.");
+            // 3. VALIDACIÓN DE AFORO
+            var evento = await _context.eventos.FirstOrDefaultAsync(e => e.EventoId == boleto.EventoId);
+            if (evento == null)
+                return BadRequest("Evento no encontrado.");
 
-            // 3. Generar código alfanumérico único
+            var vendidos = await _context.boletos.CountAsync(b => b.EventoId == evento.EventoId && b.EstadoVenta);
+            if (vendidos >= evento.Aforo)
+                return BadRequest("¡Aforo completo! No hay más boletos disponibles para este evento.");
+
+            // 4. Generar código alfanumérico único
             boleto.CodigoAN = Guid.NewGuid().ToString("N").Substring(0, 10);
 
-            // 4. Generar código QR (base64) usando el helper
+            // 5. Generar código QR (base64) usando el helper
             boleto.CodigoQR = QRCodeHelper.GenerarCodigoQR(boleto.CodigoAN);
 
-            // 5. Asignar usuario y marcar como vendido
+            // 6. Asignar usuario y marcar como vendido
             boleto.PersonaId = usuario.PersonaId;
             boleto.EstadoVenta = true;
 
-            // 6. Guardar cambios
+            // 7. Guardar cambios
             await _context.SaveChangesAsync();
 
-            // 7. Devolver la info del boleto comprado (puedes ajustar el DTO si quieres mostrar más info)
+            // 8. Devolver la info del boleto comprado (puedes ajustar el DTO si quieres mostrar más info)
             var response = new BoletoDTO
             {
                 BoletoId = boleto.BoletoId,
